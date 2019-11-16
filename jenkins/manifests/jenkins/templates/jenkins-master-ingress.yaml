@@ -1,0 +1,22 @@
+---
+# Source: jenkins/templates/jenkins-master-ingress.yaml
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: jenkins
+  labels:
+    "app.kubernetes.io/name": 'jenkins'
+    "helm.sh/chart": "jenkins-1.9.2"
+    "app.kubernetes.io/managed-by": "Tiller"
+    "app.kubernetes.io/instance": "release-name"
+    "app.kubernetes.io/component": "jenkins-master"
+  name: release-name-jenkins
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: release-name-jenkins
+          servicePort: 8081
+    host: "jenkins.example.com"
