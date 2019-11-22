@@ -1,0 +1,102 @@
+podTemplate(
+  containers: [
+    containerTemplate(name: 'docker', image: 'docker', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'kubectl', image: 'lachlanevenson/k8s-kubectl:v1.16.3', command: 'cat', ttyEnabled: true)
+  ],
+  volumes: [
+    hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
+  ],
+  nodeSelector: 'node-role.kubernetes.io/worker=true',
+  serviceAccount: 'release-name-jenkins',
+  nodeUsageMode: 'EXCLUSIVE'
+  
+  ) {
+
+    node(POD_LABEL) {
+        def image = "echo"
+        def image_repo_url = "192.168.xx.xxx"
+        def image_repo_port = "5000"
+    
+        stage('Clone repository') {
+            echo "Clone git repository ..."
+            git url: 'https://github.com/bobanbojkovski/k3s_go.git'
+            
+            tag = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                
+        }
+        
+        stage('Build image') {
+            container('docker') {
+                echo "Building docker image..."
+                sh """
+                docker build -t "${image}":"${tag}" .
+                docker tag "${image}":"${tag}" "${image_repo_url}":"${image_repo_port}"/"${image}":"${tag}"
+                """
+            }
+        }   
+    
+        stage('Test image') {
+            echo "Start docker container ..."
+            container('docker') {
+                  
+            sh "docker run -d --name echo -p 1323:1323 ${image_repo_url}:${image_repo_port}/${image}:${tag}"
+            sh "sleep 5"
+            
+            echo_ip = sh(script: 'docker inspect -f "{{ .NetworkSettings.IPAddress }}" echo', returnStdout: true).trim()
+            echo "${echo_ip}" 
+            
+            sh "docker container ps -a"
+            sh "apk update && apk add curl"
+            
+            echo "Test api availability ..."
+            script {
+                echo "${echo_ip}"
+                response_code = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://$echo_ip:1323/default", returnStdout: true)
+                response = sh(script: "curl -s http://$echo_ip:1323/default 2> /dev/null | head -n 1", returnStdout: true).trim()
+                echo "response code: " + "${response_code}"
+                echo "response: " + "${response}"
+                
+                if ((response_code != "200") || (response != "default")) {
+                    sh "docker container stop echo"
+                    sh "docker container rm echo"
+                    error('Failed:  response code: ' + "${response_code}" +  ' response: ' + "${response}")
+                    
+                } else {
+                    sh "docker container stop echo"
+                    sh "docker container rm echo"
+                    sh "docker container ps -a"
+                }
+            }
+        }
+        
+        stage('Push image') {
+            container('docker') {
+                echo "Push image..."
+                sh "docker push ${image_repo_url}:${image_repo_port}/${image}:${tag}"
+            }
+        }
+        
+        stage('Deploy image') {
+            container('kubectl') {
+                echo "Deploy image ..."
+                withKubeConfig([credentialsId: env.k3s_admin, 
+                                serverUrl: env.k3s_server_url,
+                                contextName: env.k3s_context,
+                                clusterName: env.k3s_cluster_name
+                                ]) {
+                    
+                    sh 'sed -i "s/<fqdn>/jenkins.example.com/g" ingress_app.yaml'
+                    sh "sed -i s/localhost/${image_repo_url}/g *.yaml"
+                    
+                    sh "kubectl get pods -n jenkins"
+                    sh "kubectl apply -f app_ns.yaml"
+                    sh "kubectl apply -f ingress_app.yaml -n app"
+                    sh "kubectl apply -f bar_deploy_svc.yaml -n app"
+                    sh "kubectl apply -f default_deploy_svc.yaml -n app"
+				    
+                    }
+                }
+            }
+        }
+    }
+}
