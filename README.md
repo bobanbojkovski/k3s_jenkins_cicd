@@ -152,3 +152,13 @@ kubectl apply --recursive -f ./manifests/jenkins/templates
 Watch the pods creation:  
 kubectl get pod -n jenkins -o wide --watch
 
+
+
+### Sample Jenkinsfile (pipeline)
+
+Pipeline stages:  
+Clone repository -->  Build image  -->  Test image  -->  Push image  -->  Deploy image  
+
+Test image stage covers api accessibility.
+
+
