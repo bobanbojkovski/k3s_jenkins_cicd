@@ -35,7 +35,7 @@ data:
       <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
       <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
       <clouds>
-        <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@1.21.2">
+        <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@1.21.3">
           <name>kubernetes</name>
           <templates>
             <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
@@ -142,10 +142,11 @@ data:
     # Copy plugins to shared volume
     yes n | cp -i /usr/share/jenkins/ref/plugins/* /var/jenkins_plugins/;
   plugins.txt: |-
-    kubernetes:1.21.2
+    kubernetes:1.21.3
     workflow-job:2.36
     workflow-aggregator:2.6
     credentials-binding:1.20
     git:4.0.0
     greenballs:1.15
+    kubernetes-cli:1.7.0
 

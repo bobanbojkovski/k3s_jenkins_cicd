@@ -29,7 +29,7 @@ spec:
         "app.kubernetes.io/instance": "release-name"
         "app.kubernetes.io/component": "jenkins-master"
       annotations:
-        checksum/config: ffd028a7194fff25b14a09d8cacd80eef697c958de0598684e73017a0302ed2b
+        checksum/config: c8a08f1f1f257b56d9be282236bd12c5afaaee7f628bf5bc4b220b60506a7746
     spec:
       nodeSelector:
         node-role.kubernetes.io/master: "true"
