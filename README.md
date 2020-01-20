@@ -162,3 +162,48 @@ Clone repository -->  Build image  -->  Test image  -->  Push image  -->  Deploy
 Test image stage covers api accessibility.
 
 
+### nginx ingress tls with hashicorp vault
+
+Start pre-configured dev vault server (for test puropse):  
+```
+vault server -dev  
+```
+
+Generate Root CA, create a Role (pki.sh snippet):  
+```
+vault write -field=certificate pki/root/generate/internal \
+        common_name="example.com" \
+        ttl=87600h
+
+vault write pki/roles/example-dot-com \
+        allowed_domains="example.com" \
+        allow_subdomains=true \
+        max_ttl="720h"
+```
+
+Request certificates (certs.sh snippet):  
+```
+vault write -format=json pki/issue/example-dot-com \
+        common_name="jenkins.example.com"
+```
+
+Create jenkins-secret tls secret using the certification and private_key data fetched in previous step:  
+```
+kubectl create secret tls jenkins-secret \
+        --key /tmp/tls.key --cert /tmp/tls.crt \
+        -n jenkins --dry-run -o yaml | kubectl apply -f -
+```
+
+Edit nginx ingress definiton adding tls block, for example:  
+kubectl edit ing release-name-jenkins -n jenkins
+```
+spec:
+  tls:
+  - hosts:
+    - jenkins.example.com
+    secretName: jenkins-secret
+```
+
+
+
+
