@@ -164,9 +164,17 @@ Test image stage covers api accessibility.
 
 ### nginx ingress tls with hashicorp vault
 
-Start pre-configured dev vault server (for test puropse):  
+Start pre-configured dev vault server (for test/development puropse):  
 ```
-vault server -dev  
+download vault zip from https://releases.hashicorp.com/vault/
+curl -OL https://releases.hashicorp.com/vault/1.3.1/vault_1.3.1_linux_amd64.zip
+	
+unzip vault_1.3.1_linux_amd64.zip
+mv vault /usr/local/bin/
+	
+echo "export VAULT_ADDR=http://127.0.0.1:8200" >> ~/.bashrc
+	
+vault server -dev &  
 ```
 
 Generate Root CA, create a Role (pki.sh snippet):  
